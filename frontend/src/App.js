@@ -6,7 +6,14 @@ function App() {
   const API = "https://student-api-25x0.onrender.com";
 
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const [showSignup, setShowSignup] = useState(false);
+
   const [login, setLogin] = useState({
+    username: "",
+    password: ""
+  });
+
+  const [signup, setSignup] = useState({
     username: "",
     password: ""
   });
@@ -20,28 +27,43 @@ function App() {
   });
 
   const [search, setSearch] = useState("");
-  const [editId, setEditId] = useState(null);
 
   useEffect(() => {
-    if (token) getStudents();
+    if (token) {
+      getStudents();
+    }
   }, [token]);
 
-  const handleLoginChange = (e) => {
-    setLogin({
-      ...login,
-      [e.target.name]: e.target.value
-    });
+  const loginUser = async () => {
+    try {
+      const data = new URLSearchParams();
+      data.append("username", login.username);
+      data.append("password", login.password);
+
+      const res = await axios.post(API + "/login", data);
+
+      localStorage.setItem("token", res.data.access_token);
+      setToken(res.data.access_token);
+    } catch (error) {
+      alert("Invalid Username or Password");
+    }
   };
 
-  const loginUser = async () => {
-    const data = new URLSearchParams();
-    data.append("username", login.username);
-    data.append("password", login.password);
+  const registerUser = async () => {
+    try {
+      await axios.post(API + "/users/register", signup);
 
-    const res = await axios.post(API + "/login", data);
+      alert("Signup Successful! Please Login.");
 
-    localStorage.setItem("token", res.data.access_token);
-    setToken(res.data.access_token);
+      setSignup({
+        username: "",
+        password: ""
+      });
+
+      setShowSignup(false);
+    } catch (error) {
+      alert("Signup Failed");
+    }
   };
 
   const logout = () => {
@@ -50,11 +72,15 @@ function App() {
   };
 
   const getStudents = async () => {
-    const res = await axios.get(API + "/students");
-    setStudents(res.data);
+    try {
+      const res = await axios.get(API + "/students");
+      setStudents(res.data);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const handleChange = (e) => {
+  const handleForm = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value
@@ -62,50 +88,37 @@ function App() {
   };
 
   const addStudent = async () => {
-    if (editId) {
-      await axios.put(API + "/students/" + editId, form, {
-        headers: {
-          Authorization: "Bearer " + token
-        }
-      });
-
-      setEditId(null);
-
-    } else {
+    try {
       await axios.post(API + "/students/", form, {
         headers: {
           Authorization: "Bearer " + token
         }
       });
+
+      getStudents();
+
+      setForm({
+        name: "",
+        age: "",
+        course: ""
+      });
+    } catch (error) {
+      alert("Failed to add student");
     }
-
-    setForm({
-      name: "",
-      age: "",
-      course: ""
-    });
-
-    getStudents();
-  };
-
-  const editStudent = (student) => {
-    setForm({
-      name: student.name,
-      age: student.age,
-      course: student.course
-    });
-
-    setEditId(student.id);
   };
 
   const deleteStudent = async (id) => {
-    await axios.delete(API + "/students/" + id, {
-      headers: {
-        Authorization: "Bearer " + token
-      }
-    });
+    try {
+      await axios.delete(API + "/students/" + id, {
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      });
 
-    getStudents();
+      getStudents();
+    } catch (error) {
+      alert("Delete failed");
+    }
   };
 
   const filtered = students.filter((s) =>
@@ -116,22 +129,87 @@ function App() {
     return (
       <div className="container">
         <div className="card">
-          <h1>Login</h1>
+          <h1>{showSignup ? "Sign Up" : "Login"}</h1>
 
-          <input
-            name="username"
-            placeholder="Username"
-            onChange={handleLoginChange}
-          />
+          {showSignup ? (
+            <>
+              <input
+                placeholder="Username"
+                value={signup.username}
+                onChange={(e) =>
+                  setSignup({
+                    ...signup,
+                    username: e.target.value
+                  })
+                }
+              />
 
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            onChange={handleLoginChange}
-          />
+              <input
+                type="password"
+                placeholder="Password"
+                value={signup.password}
+                onChange={(e) =>
+                  setSignup({
+                    ...signup,
+                    password: e.target.value
+                  })
+                }
+              />
 
-          <button onClick={loginUser}>Login</button>
+              <button onClick={registerUser}>Create Account</button>
+
+              <p
+                onClick={() => setShowSignup(false)}
+                style={{
+                  color: "#2563eb",
+                  cursor: "pointer",
+                  marginTop: "12px",
+                  fontWeight: "600"
+                }}
+              >
+                Already have account? Login
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                placeholder="Username"
+                value={login.username}
+                onChange={(e) =>
+                  setLogin({
+                    ...login,
+                    username: e.target.value
+                  })
+                }
+              />
+
+              <input
+                type="password"
+                placeholder="Password"
+                value={login.password}
+                onChange={(e) =>
+                  setLogin({
+                    ...login,
+                    password: e.target.value
+                  })
+                }
+              />
+
+              <button onClick={loginUser}>Login</button>
+
+              <p
+                onClick={() => setShowSignup(true)}
+                style={{
+                  color: "#2563eb",
+                  cursor: "pointer",
+                  marginTop: "12px",
+                  fontWeight: "600"
+                }}
+              >
+                Don't have account? Sign Up
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -146,32 +224,30 @@ function App() {
       </button>
 
       <div className="card">
-        <h2>{editId ? "Update Student" : "Add Student"}</h2>
+        <h2>Add Student</h2>
 
         <input
           name="name"
           placeholder="Name"
           value={form.name}
-          onChange={handleChange}
+          onChange={handleForm}
         />
 
         <input
           name="age"
           placeholder="Age"
           value={form.age}
-          onChange={handleChange}
+          onChange={handleForm}
         />
 
         <input
           name="course"
           placeholder="Course"
           value={form.course}
-          onChange={handleChange}
+          onChange={handleForm}
         />
 
-        <button onClick={addStudent}>
-          {editId ? "Update Student" : "Add Student"}
-        </button>
+        <button onClick={addStudent}>Add Student</button>
       </div>
 
       <div className="card">
@@ -200,13 +276,6 @@ function App() {
                 <td>{student.age}</td>
                 <td>{student.course}</td>
                 <td>
-                  <button
-                    className="edit"
-                    onClick={() => editStudent(student)}
-                  >
-                    Edit
-                  </button>
-
                   <button
                     className="delete"
                     onClick={() => deleteStudent(student.id)}
