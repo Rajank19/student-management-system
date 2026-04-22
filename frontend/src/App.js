@@ -3,7 +3,7 @@ import axios from "axios";
 import "./App.css";
 
 function App() {
-  const API = "http://127.0.0.1:8000";
+  const API = "https://student-api-25x0.onrender.com";
 
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [login, setLogin] = useState({
