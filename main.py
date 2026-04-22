@@ -9,12 +9,13 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Professional Student API")
 
-# CORS FIXED FOR LOCAL + VERCEL
+# CORS FOR LOCAL + VERCEL DOMAINS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://student-management-system.vercel.app"
+        "https://student-management-system.vercel.app",
+        "https://student-management-system-zeta-henna.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
